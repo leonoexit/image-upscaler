@@ -104,8 +104,8 @@ def upscale_images():
     if not files or len(files) == 0:
         return jsonify({'error': 'No images provided'}), 400
 
-    if len(files) > 20:
-        return jsonify({'error': 'Maximum 20 images allowed per batch'}), 400
+    if len(files) > 50:
+        return jsonify({'error': 'Maximum 50 images allowed per batch'}), 400
 
     scale = int(request.form.get('scale', 4))
     if scale not in [2, 3, 4]:

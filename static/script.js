@@ -52,8 +52,8 @@ fileInput.addEventListener('change', () => {
 
 // ==================== FILE HANDLING ====================
 function addFiles(files) {
-  const maxFiles = 20;
-  const maxSize = 20 * 1024 * 1024;
+  const maxFiles = 50;
+  const maxSize = 20 * 1024 * 1024; // 20MB per file
 
   for (const file of files) {
     if (selectedFiles.length >= maxFiles) {
