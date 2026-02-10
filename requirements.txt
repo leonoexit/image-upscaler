@@ -1,0 +1,9 @@
+flask
+realesrgan
+basicsr
+gfpgan
+torch
+torchvision
+Pillow
+numpy
+opencv-python-headless
