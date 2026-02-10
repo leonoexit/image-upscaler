@@ -113,6 +113,7 @@ Sau khi upload, ảnh sẽ hiện preview phía dưới. Bấm nút **✕** trê
 ### Bước 4: Tải kết quả
 
 - Mỗi ảnh có nút **"Tải xuống"** riêng
+- Bấm **"Tải tất cả (ZIP)"** để tải toàn bộ dưới dạng file ZIP
 - Tên file giữ nguyên như file gốc
 - Định dạng: giữ nguyên format gốc (JPG→JPG, PNG→PNG, WebP→WebP)
 - Bấm **"Upscale thêm"** để xử lý batch mới
@@ -143,7 +144,9 @@ image-upscaler/
 |--------|---------|-------|
 | `GET` | `/` | Giao diện web chính |
 | `POST` | `/api/upscale` | Upload & upscale ảnh |
+| `GET` | `/api/preview/<session_id>/<filename>` | Xem preview ảnh (inline) |
 | `GET` | `/api/download/<session_id>/<filename>` | Tải 1 ảnh đã upscale |
+| `GET` | `/api/download-zip/<session_id>` | Tải tất cả ảnh dạng ZIP |
 | `POST` | `/api/cleanup/<session_id>` | Xóa file tạm của session |
 
 ### POST `/api/upscale`

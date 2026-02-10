@@ -2,6 +2,8 @@ import os
 import uuid
 import shutil
 import tempfile
+import mimetypes
+import zipfile
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from werkzeug.utils import secure_filename
 import cv2
@@ -167,12 +169,14 @@ def upscale_images():
 
                 # Get output dimensions
                 h, w = output.shape[:2]
+                output_basename = os.path.basename(output_path)
                 results.append({
                     'original_name': original_name,
-                    'output_name': os.path.basename(output_path),
+                    'output_name': output_basename,
                     'width': w,
                     'height': h,
-                    'download_url': f'/api/download/{session_id}/{os.path.basename(output_path)}'
+                    'preview_url': f'/api/preview/{session_id}/{output_basename}',
+                    'download_url': f'/api/download/{session_id}/{output_basename}'
                 })
 
         # Cleanup upload folder
@@ -196,19 +200,60 @@ def upscale_images():
         return jsonify({'error': f'Processing failed: {str(e)}'}), 500
 
 
-@app.route('/api/download/<session_id>/<filename>')
-def download_file(session_id, filename):
-    """Download a single upscaled image."""
-    safe_filename = secure_filename(filename)
+@app.route('/api/preview/<session_id>/<filename>')
+def preview_file(session_id, filename):
+    """Serve an upscaled image inline for preview."""
+    safe_name = secure_filename(filename)
     result_dir = os.path.join(RESULT_FOLDER, secure_filename(session_id))
+    file_path = os.path.join(result_dir, safe_name)
 
-    if not os.path.exists(os.path.join(result_dir, safe_filename)):
+    if not os.path.exists(file_path):
         return jsonify({'error': 'File not found'}), 404
 
+    mimetype = mimetypes.guess_type(safe_name)[0] or 'application/octet-stream'
+    return send_file(file_path, mimetype=mimetype)
+
+
+@app.route('/api/download/<session_id>/<filename>')
+def download_file(session_id, filename):
+    """Download a single upscaled image as attachment."""
+    safe_name = secure_filename(filename)
+    result_dir = os.path.join(RESULT_FOLDER, secure_filename(session_id))
+    file_path = os.path.join(result_dir, safe_name)
+
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    mimetype = mimetypes.guess_type(safe_name)[0] or 'application/octet-stream'
     return send_file(
-        os.path.join(result_dir, safe_filename),
+        file_path,
+        mimetype=mimetype,
         as_attachment=True,
-        download_name=safe_filename
+        download_name=safe_name
+    )
+
+
+@app.route('/api/download-zip/<session_id>')
+def download_zip(session_id):
+    """Download all upscaled images as a ZIP file."""
+    result_dir = os.path.join(RESULT_FOLDER, secure_filename(session_id))
+
+    if not os.path.exists(result_dir):
+        return jsonify({'error': 'Session not found'}), 404
+
+    # Create ZIP in memory
+    zip_path = os.path.join(tempfile.gettempdir(), f'upscaled_{session_id}.zip')
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for fname in os.listdir(result_dir):
+            fpath = os.path.join(result_dir, fname)
+            if os.path.isfile(fpath):
+                zf.write(fpath, fname)
+
+    return send_file(
+        zip_path,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='upscaled_images.zip'
     )
 
 
@@ -217,6 +262,10 @@ def cleanup_session(session_id):
     """Cleanup result files for a session."""
     result_dir = os.path.join(RESULT_FOLDER, secure_filename(session_id))
     shutil.rmtree(result_dir, ignore_errors=True)
+    # Also cleanup zip if exists
+    zip_path = os.path.join(tempfile.gettempdir(), f'upscaled_{session_id}.zip')
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
     return jsonify({'success': True})
 
 
